@@ -1,31 +1,24 @@
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
+export async function onRequestPost(context) {
+  const { request, env } = context;
+  const { model, voice, input } = await request.json();
 
-async function handleRequest(request) {
-  if (request.method === 'POST' && new URL(request.url).pathname === '/api/tts') {
-    const { model, voice, input } = await request.json()
+  const ttsResponse = await fetch('https://burn.hair/v1/audio/speech', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.TTS_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ model, voice, input })
+  });
 
-    const ttsResponse = await fetch('https://burn.hair/v1/audio/speech', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${TTS_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ model, voice, input })
-    })
-
-    if (!ttsResponse.ok) {
-      return new Response('Error calling TTS API', { status: ttsResponse.status })
-    }
-
-    const audioBuffer = await ttsResponse.arrayBuffer()
-    return new Response(audioBuffer, {
-      headers: {
-        'Content-Type': 'audio/mpeg'
-      }
-    })
+  if (!ttsResponse.ok) {
+    return new Response('Error calling TTS API', { status: ttsResponse.status });
   }
 
-  return new Response('Not Found', { status: 404 })
+  const audioBuffer = await ttsResponse.arrayBuffer();
+  return new Response(audioBuffer, {
+    headers: {
+      'Content-Type': 'audio/mpeg'
+    }
+  });
 }
