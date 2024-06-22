@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Web Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        #progressBar {
+            width: 100%;
+            background-color: #f3f3f3;
+            padding: 3px;
+            border-radius: 3px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, .2);
+            margin-top: 10px;
+            display: none;
+        }
+        #progressBar div {
+            display: block;
+            height: 22px;
+            background-color: #4CAF50;
+            border-radius: 3px;
+            transition: width 500ms ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <h1>TTS Web Interface</h1>
+    <form id="ttsForm">
+        <label for="model">Model:</label>
+        <input type="text" id="model" value="tts-az-1" required>
+        
+        <label for="voice">Voice:</label>
+        <select id="voice" required>
+            <option value="zh-CN-XiaoxiaoNeural">zh-CN-XiaoxiaoNeural (Female)</option>
+            <option value="zh-CN-YunxiNeural">zh-CN-YunxiNeural (Male)</option>
+            <option value="zh-CN-YunjianNeural">zh-CN-YunjianNeural (Male)</option>
+            <option value="zh-CN-XiaoyiNeural">zh-CN-XiaoyiNeural (Female)</option>
+            <option value="zh-CN-YunyangNeural">zh-CN-YunyangNeural (Male)</option>
+            <option value="zh-CN-XiaochenNeural">zh-CN-XiaochenNeural (Female)</option>
+            <option value="zh-CN-XiaohanNeural">zh-CN-XiaohanNeural (Female)</option>
+            <option value="zh-CN-XiaomengNeural">zh-CN-XiaomengNeural (Female)</option>
+            <option value="zh-CN-XiaomoNeural">zh-CN-XiaomoNeural (Female)</option>
+            <option value="zh-CN-XiaoqiuNeural">zh-CN-XiaoqiuNeural (Female)</option>
+            <option value="zh-CN-XiaoruiNeural">zh-CN-XiaoruiNeural (Female)</option>
+            <option value="zh-CN-XiaoshuangNeural">zh-CN-XiaoshuangNeural (Female, Child)</option>
+            <option value="zh-CN-XiaoyanNeural">zh-CN-XiaoyanNeural (Female)</option>
+            <option value="zh-CN-XiaoyouNeural">zh-CN-XiaoyouNeural (Female, Child)</option>
+            <option value="zh-CN-XiaozhenNeural">zh-CN-XiaozhenNeural (Female)</option>
+            <option value="zh-CN-YunfengNeural">zh-CN-YunfengNeural (Male)</option>
+            <option value="zh-CN-YunhaoNeural">zh-CN-YunhaoNeural (Male)</option>
+            <option value="zh-CN-YunxiaNeural">zh-CN-YunxiaNeural (Male)</option>
+            <option value="zh-CN-YunyeNeural">zh-CN-YunyeNeural (Male)</option>
+            <option value="zh-CN-YunzeNeural">zh-CN-YunzeNeural (Male)</option>
+            <option value="zh-CN-XiaochenMultilingualNeural">zh-CN-XiaochenMultilingualNeural (Female)</option>
+            <option value="zh-CN-XiaorouNeural">zh-CN-XiaorouNeural (Female)</option>
+            <option value="zh-CN-XiaoxiaoDialectsNeural">zh-CN-XiaoxiaoDialectsNeural (Female)</option>
+            <option value="zh-CN-XiaoxiaoMultilingualNeural">zh-CN-XiaoxiaoMultilingualNeural (Female)</option>
+            <option value="zh-CN-XiaoyuMultilingualNeural">zh-CN-XiaoyuMultilingualNeural (Female)</option>
+            <option value="zh-CN-YunjieNeural">zh-CN-YunjieNeural (Male)</option>
+            <option value="zh-CN-YunyiMultilingualNeural">zh-CN-YunyiMultilingualNeural (Male)</option>
+        </select>
+        
+        <label for="input">Input Text:</label>
+        <textarea id="input" rows="4" required></textarea>
+        
+        <button type="submit">Generate Audio</button>
+    </form>
+
+    <div id="progressBar">
+        <div style="width: 0%;">0%</div>
+    </div>
+
+    <div id="audioPlayer" style="display:none;">
+        <h2>Generated Audio:</h2>
+        <audio controls>
+            Your browser does not support the audio element.
+        </audio>
+    </div>
+
+    <script>
+        document.getElementById('ttsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const model = document.getElementById('model').value;
+            const voice = document.getElementById('voice').value;
+            const input = document.getElementById('input').value;
+
+            const progressBar = document.getElementById('progressBar');
+            const progressBarFill = progressBar.querySelector('div');
+            progressBar.style.display = 'block';
+            progressBarFill.style.width = '0%';
+            progressBarFill.textContent = '0%';
+
+            try {
+                const response = await fetch('/api/tts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ model, voice, input }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const blob = await response.blob();
+                const audioUrl = URL.createObjectURL(blob);
+
+                const audioPlayer = document.getElementById('audioPlayer');
+                audioPlayer.style.display = 'block';
+                const audio = audioPlayer.querySelector('audio');
+                audio.src = audioUrl;
+
+                progressBar.style.display = 'none';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while generating the audio. Please try again.');
+                progressBar.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
